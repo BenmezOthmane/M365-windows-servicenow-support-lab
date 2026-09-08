@@ -99,11 +99,11 @@ Rather than focusing on a single role, the project demonstrates practical exposu
        └────────┼────────┘            │
                 │                     │
          SharePoint / OneDrive        │
-                                     │
-                          ┌──────────┴──────────┐
-                          │                     │
-                     WIN-USER-01          WIN-USER-02
-                     Windows 10 Pro       Windows 10 Pro
+                                      │
+                           ┌──────────┴──────────┐
+                           │                     │
+                      WIN-USER-01          WIN-USER-02
+                      Windows 10 Pro       Windows 10 Pro
 ```
 
 ---
