@@ -1,0 +1,58 @@
+# Scenario 1: Automated Employee Onboarding (Joiner Process)
+
+## 📌 Executive Summary
+* **Scenario Type:** Service Request / Identity Lifecycle Management
+* **Objective:** Automate new employee provisioning in Active Directory via ServiceNow Workflow Studio and MID Server.
+* **Target User:** Karim Elamrani (`sales.karim`)
+* **Status:** Completed & Verified ✅
+
+---
+
+## 🛠️ Environment & Prerequisites
+* **ITSM Platform:** ServiceNow (PDI)
+* **Execution Engine:** MID Server hosted on `DC01` (`C:\ServiceNow\MID_DC01\ServiceNow MID Server\`)
+* **Identity Infrastructure:** On-Premises Active Directory (`genitech.lab`)
+* **Automation Mechanism:** Custom PowerShell Script (`New-JMLUser.ps1`) executed via `SncProbe`
+
+---
+
+## 🔄 Technical Workflow Architecture
+1. **Trigger:** Input payload received from ServiceNow Workflow Studio (First Name, Last Name, Department, Job Title).
+2. **Transport:** MID Server picks up the probe request and routes execution locally to `DC01`.
+3. **Execution:** `New-JMLUser.ps1` checks/creates the target Organizational Unit (OU) under `OU=Users,OU=Genitech,DC=genitech,DC=lab` and provisions the user.
+4. **Response:** Execution status and payload return to ServiceNow with status code `0` (Success).
+
+---
+
+## 💻 PowerShell Script Logic Overview (`New-JMLUser.ps1`)
+```powershell
+$SamAccountName = "$($Department.ToLower()).$($FirstName.ToLower())"
+$UserPrincipalName = "$SamAccountName@genitech.lab"
+$OUPath = "OU=$Department,OU=Users,OU=Genitech,DC=genitech,DC=lab"
+$SecurePassword = ConvertTo-SecureString "Genitech@2026#Sales" -AsPlainText -Force
+
+try {
+    if (-not (Get-ADOrganizationalUnit -Filter "DistinguishedName -eq '$OUPath'")) {
+        New-ADOrganizationalUnit -Name $Department -Path "OU=Users,OU=Genitech,DC=genitech,DC=lab"
+    }
+
+    New-ADUser -Name $SamAccountName `
+               -GivenName $FirstName `
+               -Surname $LastName `
+               -SamAccountName $SamAccountName `
+               -UserPrincipalName $UserPrincipalName `
+               -Path $OUPath `
+               -Title $JobTitle `
+               -Department $Department `
+               -AccountPassword $SecurePassword `
+               -Enabled $true `
+               -ErrorAction Stop
+
+    # Note: ADSync step disabled temporarily for local-only onboarding test
+    # Start-ADSyncSyncCycle -PolicyType Delta | Out-Null
+    
+    Write-Host "SUCCESS: User $SamAccountName created successfully in$OUPath" -ForegroundColor Green
+}
+catch {
+    Write-Error "FAILED: $_"
+}
